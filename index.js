@@ -1,17 +1,18 @@
 var elasticsearch = require('elasticsearch');
 var async = require('async');
+var modify = require('./lib/modify');
 
 var results = [];
 var oldIndex = process.argv[2];
 var newIndex = process.argv[3];
 var doneQuery = false;
-var batchSize = ES_BATCH_SIZE || 500;
+var batchSize = process.env.ES_BATCH_SIZE || 500;
 var scroll_id;
 var handled = 0;
 var from = 0;
 
 var client = new elasticsearch.Client({
-  host: ES_HOST || 'localhost:9200',
+  host: process.env.ES_HOST || 'localhost:9200',
   log: 'info'
 });
 
@@ -49,10 +50,6 @@ function queryBatch(callback) {
   }
 }
 
-function modifyResult(document, callback) {
-  return callback(null, document);
-}
-
 function insertBulk(callback) {
   var items = results.splice(0, batchSize);
   var bulk = [];
@@ -85,7 +82,7 @@ function runQuery() {
       }
       hits.forEach(function(h) {
         tasks.push(function(callback) {
-          modifyResult(h, function(err, doc) {
+          modify.modifyResult(h, function(err, doc) {
             if (err) return callback(err);
             results.push(doc);
             return callback();
