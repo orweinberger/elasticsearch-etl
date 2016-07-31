@@ -1,0 +1,9 @@
+{
+  "name": "elasticsearch-etl",
+  "description": "Extract, Transform and Load documents from and to Elasticsearch.",
+  "version": "0.0.1",
+  "dependencies": {
+    "async": "^2.0.1",
+    "elasticsearch": "^11.0.1"
+  }
+}
