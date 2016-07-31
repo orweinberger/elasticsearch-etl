@@ -108,7 +108,7 @@ function runBulk() {
       process.exit(0);
     }, 2000);
   } else if (results.length === 0) {
-    console.log('No items left in queue, pausing for 1 second.');
+    console.log('No items left in queue, pausing for 1 second, consider reducing queryDelay value.');
     setTimeout(function() {
       runBulk();
     }, 1000);
