@@ -6,9 +6,11 @@ var results = [];
 var oldIndex = process.argv[2];
 var newIndex = process.argv[3];
 var doneQuery = false;
-var batchSize = process.env.ES_BATCH_SIZE || 100;
+var batchSize = process.env.ES_BATCH_SIZE || 200;
 var insertSize = process.env.ES_INSERT_SIZE || batchSize * 5
-var queryDelay = process.env.ES_QUERY_DELAY || 100;
+var queryDelay = process.env.ES_QUERY_DELAY || 50;
+var orig_queryDelay = queryDelay;
+var maxQueue = process.env.ES_MAX_QUEUE || 50000;
 var scroll_id;
 var handled = 0;
 var from = 0;
@@ -133,7 +135,14 @@ runQuery();
 runBulk();
 
 setInterval(function() {
-  console.log('Total Handled: ' + handled + ' In memory: ' + results.length)
+  console.log('Total Handled: ' + handled + ' In memory: ' + results.length);
+  //check if we reached maxQueue
+  if (results.length >= maxQueue) {
+    console.log('Reached maxQueue, delaying queries for 5 seconds.');
+    queryDelay = 5000;
+  }
+  else
+    queryDelay = orig_queryDelay;
 }, 5000);
 
 process.on('SIGINT', function() {
