@@ -24,7 +24,7 @@ function queryBatch(callback) {
   if (!scroll_id) {
     client.search({
       index: oldIndex,
-      scroll: '1m',
+      scroll: '30s',
       search_type: 'scan',
       body: {
         size: batchSize,
@@ -38,7 +38,8 @@ function queryBatch(callback) {
       scroll_id = resp._scroll_id;
       return callback(null, resp.hits.hits);
     });
-  } else {
+  }
+  else {
     client.scroll({
       scrollId: scroll_id,
       scroll: '30s'
@@ -97,7 +98,8 @@ function runQuery() {
         }, queryDelay);
       });
     });
-  } else
+  }
+  else
     console.log('COMPLETED QUERYING, WAITING FOR BULKS TO FINISH');
 }
 
@@ -107,16 +109,19 @@ function runBulk() {
     setTimeout(function() {
       process.exit(0);
     }, 2000);
-  } else if (results.length === 0) {
+  }
+  else if (results.length === 0) {
     console.log('No items left in queue, pausing for 1 second, consider reducing queryDelay value.');
     setTimeout(function() {
       runBulk();
     }, 1000);
-  } else {
+  }
+  else {
     insertBulk(function(err) {
       if (err) {
         console.log('INSERT ERR', err);
-      } else {
+      }
+      else {
         handled += insertSize;
         runBulk();
       }
@@ -129,4 +134,9 @@ runBulk();
 
 setInterval(function() {
   console.log('Total Handled: ' + handled + ' In memory: ' + results.length)
-}, 5000)
+}, 5000);
+
+process.on('SIGINT', function() {
+  console.log("Caught interrupt signal, draining queue");
+  doneQuery = true;
+});
