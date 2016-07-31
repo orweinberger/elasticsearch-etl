@@ -6,7 +6,9 @@ var results = [];
 var oldIndex = process.argv[2];
 var newIndex = process.argv[3];
 var doneQuery = false;
-var batchSize = process.env.ES_BATCH_SIZE || 500;
+var batchSize = process.env.ES_BATCH_SIZE || 100;
+var insertSize = process.env.ES_INSERT_SIZE || batchSize * 5
+var queryDelay = process.env.ES_QUERY_DELAY || 100;
 var scroll_id;
 var handled = 0;
 var from = 0;
@@ -51,7 +53,7 @@ function queryBatch(callback) {
 }
 
 function insertBulk(callback) {
-  var items = results.splice(0, batchSize);
+  var items = results.splice(0, insertSize);
   var bulk = [];
   items.forEach(function(i) {
     bulk.push({
@@ -73,7 +75,6 @@ function insertBulk(callback) {
 
 function runQuery() {
   if (!doneQuery) {
-    console.log('RUNNING QUERY');
     queryBatch(function(err, hits) {
       var tasks = [];
       if (err) {
@@ -91,8 +92,9 @@ function runQuery() {
       });
       async.parallel(tasks, function(err) {
         from += batchSize;
-        console.log('Fetched batch, result array size is', results.length);
-        runQuery();
+        setTimeout(function() {
+          runQuery();
+        }, queryDelay);
       });
     });
   } else
@@ -100,14 +102,13 @@ function runQuery() {
 }
 
 function runBulk() {
-  console.log('RUNNING BULK');
   if (results.length === 0 && doneQuery) {
     console.log('COMPLETED QUERIES AND BULKS, WAITING FOR 2 SECONDS AND EXITING');
     setTimeout(function() {
       process.exit(0);
     }, 2000);
   } else if (results.length === 0) {
-    console.log('NO ITEMS TO PUSH YET, PAUSING FOR 1 SECOND');
+    console.log('No items left in queue, pausing for 1 second.');
     setTimeout(function() {
       runBulk();
     }, 1000);
@@ -116,7 +117,7 @@ function runBulk() {
       if (err) {
         console.log('INSERT ERR', err);
       } else {
-        console.log('Inserted batch, result array size is', results.length, ' Total inserted:', handled);
+        handled += insertSize;
         runBulk();
       }
     });
@@ -125,3 +126,7 @@ function runBulk() {
 
 runQuery();
 runBulk();
+
+setInterval(function() {
+  console.log('Total Handled: ' + handled + ' In memory: ' + results.length)
+}, 5000)
